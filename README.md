@@ -1,5 +1,5 @@
 # ExploratoryDataAnalysis
-Performed detailed data analysis on the following datasets:
+Performed detailed data analysis on the following dataset:
 
 # UCDP Georeferenced Event Dataset (GED) Global version 17.2 (2016)
   Features of the dataset:
