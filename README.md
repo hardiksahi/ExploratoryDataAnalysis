@@ -4,8 +4,11 @@ Performed detailed data analysis on the following dataset:
 # UCDP Georeferenced Event Dataset (GED) Global version 17.2 (2016)
   Features of the dataset:
 a. Rows: 135183, Columns: 42.
+
 b. Provides information regarding individual events of organized violence (phenomena of lethal violence occurring at a given time and place)
+
 c. Events are sufficiently fine-grained to be geo-coded down to the level of individual villages, with temporal durations disaggregated to single, individudal days. 
+
 
 The dataset has **geospatial and temporal information** associated with them.
 
