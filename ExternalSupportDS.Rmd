@@ -1,0 +1,1069 @@
+---
+title: "External Support in Armed Conflicts [1975-2009]"
+always_allow_html: yes
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    keep_tex: yes
+    latex_engine: xelatex
+    number_sections: yes
+  word_document: default
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{epic}
+- \usepackage{color}
+- \usepackage{hyperref}
+- \usepackage{multimedia}
+- \PassOptionsToPackage{pdfmark}{hyperref}\RequirePackage{hyperref}
+- \newcommand{\code}[1]{\texttt{#1}}
+- \newcommand{\ve}[1]{\mathbf{#1}}
+- \newcommand{\pop}[1]{\mathcal{#1}}
+- \newcommand{\samp}[1]{\mathcal{#1}}
+- \newcommand{\subspace}[1]{\mathcal{#1}}
+- \newcommand{\sv}[1]{\boldsymbol{#1}}
+- \newcommand{\sm}[1]{\boldsymbol{#1}}
+- \newcommand{\tr}[1]{{#1}^{\mkern-1.5mu\mathsf{T}}}
+- \newcommand{\abs}[1]{\left\lvert ~{#1} ~\right\rvert}
+- \newcommand{\size}[1]{\left\lvert {#1} \right\rvert}
+- \newcommand{\norm}[1]{\left|\left|{#1}\right|\right|}
+- \newcommand{\field}[1]{\mathbb{#1}}
+- \newcommand{\Reals}{\field{R}}
+- \newcommand{\Integers}{\field{Z}}
+- \newcommand{\Naturals}{\field{N}}
+- \newcommand{\Complex}{\field{C}}
+- \newcommand{\Rationals}{\field{Q}}
+- \newcommand{\widebar}[1]{\overline{#1}}
+- \newcommand{\wig}[1]{\tilde{#1}}
+- \newcommand{\bigwig}[1]{\widetilde{#1}}
+- \newcommand{\leftgiven}{~\left\lvert~}
+- \newcommand{\given}{~\vert~}
+- \newcommand{\indep}{\bot\hspace{-.6em}\bot}
+- \newcommand{\notindep}{\bot\hspace{-.6em}\bot\hspace{-0.75em}/\hspace{.4em}}
+- \newcommand{\depend}{\Join}
+- \newcommand{\notdepend}{\Join\hspace{-0.9 em}/\hspace{.4em}}
+- \newcommand{\imply}{\Longrightarrow}
+- \newcommand{\notimply}{\Longrightarrow \hspace{-1.5em}/ \hspace{0.8em}}
+- \newcommand*{\intersect}{\cap}
+- \newcommand*{\union}{\cup}
+- \DeclareMathOperator*{\argmin}{arg\,min}
+- \DeclareMathOperator*{\argmax}{arg\,max}
+- \DeclareMathOperator*{\Ave}{Ave\,}
+- \newcommand{\permpause}{\pause}
+- \newcommand{\suchthat}{~:~}
+- \newcommand{\st}{~:~} 
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r pathSetup}
+dataDirectory <- "/Users/hardiksahi/Second Term/Stat 847/Project/FinalDataSet847"
+path_concat <- function(path1, path2, sep="/") paste(path1, path2, sep = sep)
+```
+
+```{r}
+library(plyr)
+library(ggplot2)
+library(stringr)
+library(gtable)
+library(gridExtra)
+library(plotly)
+library(dplyr)
+```
+
+
+
+**In-detail analysis of external support in conflicts from 1975 to 2009:**
+
+Use dataset **'ExternalHelpLarge'** that records the external support in armed conflicts from 1975 to 2009. The purpose of this analysis will be to understand the effect external influence has on duration of conflict and how different countries have changed their allegiance over the years.
+
+
+```{r}
+externalHelp <- read.csv(file = path_concat(dataDirectory, "ExternalHelpLarge.csv"))
+#externalHelp <- read.csv("/Users/hardiksahi/Second Term/Stat 847/Project/External influence/ExternalHelpLarge.csv")
+externalHelp$total_different_supports <- externalHelp$external_type_troops+externalHelp$external_type_military+externalHelp$external_type_territory+externalHelp$external_type_weapon+externalHelp$external_type_material_log+externalHelp$external_type_training+externalHelp$external_type_economic+externalHelp$external_type_intelligence+externalHelp$external_type_other+externalHelp$external_type_unknown
+
+columnsToKeep <- c("conflictID", "conflict_name", "dyad_id", "dyad_name","primary_actor_name", "external_name","ywp_year","actorID")
+
+```
+
+### Pattern exploration in the dataset
+
+**Trend of direct or indirect involvement of countries in conflicts worldwide**
+
+
+```{r}
+#externalHelp
+year_direct_conflict <-  externalHelp %>% group_by(ywp_year) %>% mutate(direct_conflict = n_distinct(country1))
+year_direct_conflict_unique <- unique(year_direct_conflict[,c("ywp_year","direct_conflict")])
+year_direct_conflict_unique <-year_direct_conflict_unique[order(year_direct_conflict_unique$ywp_year),]
+
+
+year_external_conflict <- subset(externalHelp, (external_lat != 'NA' & external_long != 'NA')) %>% group_by(ywp_year) %>% mutate(indirect_conflict = n_distinct(external_name))
+year_external_conflict_unique <- unique(year_external_conflict[,c("ywp_year","indirect_conflict")])
+year_external_conflict_unique <-year_external_conflict_unique[order(year_external_conflict_unique$ywp_year),]
+
+updated_direct_external_conflict <- data.frame(year = year_direct_conflict_unique$ywp_year, direct_count = year_direct_conflict_unique$direct_conflict, external_count = year_external_conflict_unique$indirect_conflict)
+
+trend_direct_external_conflict_countries <- plot_ly(data =updated_direct_external_conflict,x = ~factor(year))%>% add_trace(y=~direct_count, name = 'Direct conflict', mode = 'lines+markers',type = 'scatter')%>% add_trace(y=~external_count, name = 'Indirect conflict', mode = 'lines+markers',type = 'scatter')%>% layout(title = "Trend of countries getting involved in conflicts", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of countries'))
+trend_direct_external_conflict_countries
+```
+
+As expected, more and more countries are getting involved in conflicts indirectly by being a foreign power providing support to the primary warring parties. On the other hand, the number of countries involved in direct conflicts has more or less stayed the same.
+
+We can roughly divide the conflicts into 3 types:
+1. Countries fighting against each other. (Country1 and Country2 are main belligerents)
+2. Country fighting to gain territory.
+3. Country fighting aginst an organization to take control of governance.
+
+We will perform detailed analysis for each of the above 3 categories.
+
+```{r}
+hyphen <- "-"
+roundBracketBeg <- "\\("
+roundBracketEnd <- "\\)"
+
+subsetWithColumns <- externalHelp[columnsToKeep]
+dfCountriesFighting <- subset(subsetWithColumns, str_detect(externalHelp$conflict_name, hyphen) & !str_detect(externalHelp$conflict_name, roundBracketBeg) & !str_detect(externalHelp$conflict_name, roundBracketEnd))
+
+dfCountriesFighting <- dfCountriesFighting[order(dfCountriesFighting$ywp_year),]
+
+
+conflictsWithCountriesFighting <- dfCountriesFighting %>% group_by(conflictID) %>% mutate(year_count = n_distinct(ywp_year))
+
+uniqueConflictsCountriesFight <- unique(conflictsWithCountriesFighting[,c('conflictID','conflict_name','year_count')])
+numberConflictsCountryFighting <- NROW(uniqueConflictsCountriesFight)
+numberConflictsCountryFighting
+```
+
+```{r}
+dfCountriesForTerritory <- subset(subsetWithColumns, !str_detect(externalHelp$conflict_name, hyphen) & str_detect(externalHelp$conflict_name, roundBracketBeg) & str_detect(externalHelp$conflict_name, roundBracketEnd))
+
+dfCountriesForTerritory <- dfCountriesForTerritory[order(dfCountriesForTerritory$ywp_year),]
+
+conflictsWithCountriesTerritory <- dfCountriesForTerritory %>% group_by(conflictID) %>% mutate(year_count = n_distinct(ywp_year))
+
+uniqueConflictsCountriesTerr <- unique(conflictsWithCountriesTerritory[,c('conflictID','conflict_name','year_count')])
+numberConflictsCountriesTerritory <- NROW(uniqueConflictsCountriesTerr)
+numberConflictsCountriesTerritory
+```
+
+```{r}
+dfCountriesForGovernance <- subset(subsetWithColumns, !str_detect(externalHelp$conflict_name, hyphen) & !str_detect(externalHelp$conflict_name, roundBracketBeg) & !str_detect(externalHelp$conflict_name, roundBracketEnd))
+
+dfCountriesForGovernance <- dfCountriesForGovernance[order(dfCountriesForGovernance$ywp_year),]
+
+conflictsWithCountriesGovernance <- dfCountriesForGovernance %>% group_by(conflictID) %>% mutate(year_count = n_distinct(ywp_year))
+
+uniqueConflictsCountriesGov <- unique(conflictsWithCountriesGovernance[,c('conflictID','conflict_name','year_count')])
+
+numberConflictsCountriesGovernance <- NROW(uniqueConflictsCountriesGov)
+numberConflictsCountriesGovernance
+```
+
+
+Now let's create a dataframe to capture the above numbers.
+
+```{r}
+# create a dataframe that captures the above numbers
+conflictReasonCountDf <- data.frame(attack_for_territory = numberConflictsCountriesTerritory, attack_on_country = numberConflictsCountryFighting, attack_for_governance = numberConflictsCountriesGovernance)
+conflictReasonCountDf
+```
+
+```{r}
+getSubsetForConflict <- function(confID){
+  return(subset(externalHelp, conflictID == confID))
+}
+
+getConflictNameFromSubset <- function(conflictSubset){
+  return(conflictSubset$conflict_name[1])
+}
+
+getYearsForConflict <- function(conflictSubset){
+  return(sort(unique(conflictSubset$ywp_year)))
+}
+
+getConflictSubsetForYear<- function(year, conflictSubset){
+  return(subset(conflictSubset, ywp_year == year))
+}
+
+getDyadsInConflictForYear <- function(conflictSubsetYear){
+  return(unique(conflictSubsetYear$dyad_id))
+}
+
+getDyadNameInConflict <- function(subset_for_dyad){
+  return(subset_for_dyad$dyad_name[1])
+}
+
+getHoverText <- function(country, ext_type_text){
+  strToReturn = paste('Country:',country,'<br>Support areas:',ext_type_text)
+  return(strToReturn)
+}
+
+getHoverTextFight <- function(country){
+  strToReturn = paste('Conflict Country:',country,'<br>Receives support from the connected countries.')
+  return(strToReturn)
+}
+
+getTitle <- function(confName, dyadName){
+  strToReturn = paste('Conflict Name:', confName, ' Sides Fighting:', dyadName)
+  return(strToReturn)
+}
+
+g_world <- list(
+  projection = list(type = 'Mercator'),
+  landcolor = toRGB("gray95"),
+  #countrycolor = toRGB("gray80"),
+  showland = TRUE,
+  showframe = FALSE,
+  showcoastlines = TRUE,
+  subunitcolor = toRGB("white"),
+  showcountries = F
+)
+
+
+mapList <- list()
+count <-1
+
+functionForEachDyadInYear = function(dyad_id, conflictSubsetYear,conflict_name, conflict_year, conflict_type){
+  #browser()
+  conflict_gyear_gdyad <- subset(conflictSubsetYear, dyad_id == dyad_id) # dyad rows for a given conflict, given year.
+  dyad_name_gconflict_gyear_gdyad <- getDyadNameInConflict(conflict_gyear_gdyad)
+  
+  unique_actor_actorID_given_dyad <- unique(conflict_gyear_gdyad[,c("actorID","primary_actor_name")])
+  unique_actors_given_dyad_list <- unique(unique_actor_actorID_given_dyad$actorID) # all the actors that received aid in this dyad.
+  
+  
+  # Now let's get information for 2 sides in the conflict [country1, country2]
+  
+  if(conflict_type == between_countries){
+    # Has both sides as countries [country1, country2]
+    country1_given_conflict_dyad_year<- unique(conflict_gyear_gdyad[,c("country1", "code1","country1id","country1_lat","country1_long")])
+    country2_given_conflict_dyad_year<- unique(conflict_gyear_gdyad[,c("country2", "code2","country2id","country2_lat","country2_long")])
+    
+  }
+  else if(conflict_type == govt_nongovt){
+    # Has only side 1 as country and side 2 as rebel group.
+    country1_given_conflict_dyad_year<- unique(conflict_gyear_gdyad[,c("country1", "code1","country1id","country1_lat","country1_long")])
+  }
+  
+  # countryName, countrycode, differSupp, marker_lat, marker_long, start_lat, start_long,end_lat, end_long, ONSIDE 
+  # countryName, countrycode, differSupp, marker_lat, marker_long, start_lat, start_long,end_lat, end_long, ONSIDE
+  
+  colNamesMainCountries <- c("name","code","lat","long")
+  # Country 1 DF
+  country1_name <- country1_given_conflict_dyad_year[,c("country1")]
+  country1_code <- country1_given_conflict_dyad_year[,c("code1")]
+  country1_lat <- country1_given_conflict_dyad_year[,c("country1_lat")]
+  country1_long <-country1_given_conflict_dyad_year[,c("country1_long")]
+  
+  country1_df <- data.frame(country1_name,country1_code,country1_lat,country1_long)
+  names(country1_df) <- colNamesMainCountries
+  
+  
+  if(conflict_type == between_countries){ # Scenario when 2nd side is ALSO a COUNTRY
+    country2_name <- country2_given_conflict_dyad_year[,c("country2")]
+    country2_code <- country2_given_conflict_dyad_year[,c("code2")]
+    country2_lat <- country2_given_conflict_dyad_year[,c("country2_lat")]
+    country2_long <-country2_given_conflict_dyad_year[,c("country2_long")]
+    country2_df <- data.frame(country2_name,country2_code,country2_lat,country2_long)
+    names(country2_df) <- colNamesMainCountries
+  }
+  else if(conflict_type == govt_nongovt){ # When 2nd party is a faction that is based in Country1... => Just set name as name as faction and LAT LONG jittered
+    country2_code <- country1_given_conflict_dyad_year[,c("code1")]
+    country1_id <- country1_given_conflict_dyad_year[,c("country1id")]
+    country2_name <- (subset(unique_actor_actorID_given_dyad, actorID != country1_id))$primary_actor_name
+    
+    if(length(country2_name) == 0){ #=> no row for Side 1. => only rows for side 2
+      country2_name <- "No support for side2"
+    }
+    country2_lat <- jitter(country1_given_conflict_dyad_year[,c("country1_lat")])
+    country2_long <-jitter(country1_given_conflict_dyad_year[,c("country1_long")])
+    country2_df <- data.frame(country2_name,country2_code,country2_lat,country2_long)
+    names(country2_df) <- colNamesMainCountries
+  }
+  
+  isCountry1Supp <- FALSE
+  isCountry2Supp <- FALSE
+  columnsForSupporters <- c("external_name","external_code","total_different_supports","external_lat","external_long","external_type_text") # They are already in the dataset
+  #columnsExtraForSupporters <- c("start_lat", "start_long","end_lat", "end_long","onside") # Columns to compute on fly
+  
+  for(actorIDN in unique_actors_given_dyad_list){ # at max 2 actors.
+    if(actorIDN == country1_given_conflict_dyad_year$country1id){
+      # Supporters for side1
+      side1_supporters <-  unique(subset(conflict_gyear_gdyad, actorID == actorIDN)[,columnsForSupporters])
+      side1_supporters$start_lat <- side1_supporters$external_lat
+      side1_supporters$start_long <- side1_supporters$external_long
+      side1_supporters$end_lat <- country1_df$lat
+      side1_supporters$end_long <- country1_df$long
+      side1_supporters$onside <- rep(2,nrow(side1_supporters))
+      isCountry1Supp <- TRUE
+      #print(paste("#Supporters on side 1",nrow(side1_supporters)))
+    }
+    else {
+      # Supporters for side2 [country of faction.]
+      side2_supporters <-  unique(subset(conflict_gyear_gdyad, actorID == actorIDN)[,columnsForSupporters])
+      side2_supporters$start_lat <- side2_supporters$external_lat
+      side2_supporters$start_long <- side2_supporters$external_long
+      side2_supporters$end_lat <- country2_df$lat
+      side2_supporters$end_long <- country2_df$long
+      side2_supporters$onside <- rep(4,nrow(side2_supporters))
+      isCountry2Supp <- TRUE
+      #print(paste("#Supporters on side 2",nrow(side2_supporters)))
+    }
+  }
+  
+  plotly_map <- plot_geo() %>% layout(geo = g_world, title = ~getTitle(conflict_name, dyad_name_gconflict_gyear_gdyad), showlegend = FALSE)
+  if(isCountry1Supp && isCountry2Supp){
+    #Adding segments and markers for supporters of SIDE1
+    plotly_map <- add_segments(plotly_map,data = side1_supporters,x = ~start_long, xend = ~end_long, y = ~start_lat, yend = ~end_lat, alpha = 1, hoverinfo = "none",color = I("red"))
+    plotly_map <- add_markers(plotly_map,data = side1_supporters,  x = ~external_long, y = ~external_lat, text = ~getHoverText(external_name, external_type_text), hoverinfo = "text",alpha = 0.3,color = I("red"),marker=list(size=15))
+    plotly_map <- add_text(plotly_map,data = side1_supporters,  x = ~external_long, y = ~external_lat, text = ~external_name, color = I("red"), hoverinfo = "none")
+    
+    
+    #Adding segments and markers for supporters of SIDE2
+    plotly_map <- add_segments(plotly_map,data = side2_supporters,x = ~start_long, xend = ~end_long, y = ~start_lat, yend = ~end_lat, alpha = 1, hoverinfo = "none",color = I("blue"))
+    plotly_map <- add_markers(plotly_map,data = side2_supporters,  x = ~external_long, y = ~external_lat, text = ~getHoverText(external_name, external_type_text), hoverinfo = "text",alpha = 0.3,color = I("blue"),marker=list(size=15))
+    plotly_map <- add_text(plotly_map,data = side2_supporters,  x = ~external_long, y = ~external_lat, text = ~external_name, color = I("blue"), hoverinfo = "none")
+    
+  }
+  else if(isCountry1Supp && !isCountry2Supp){
+    #Adding segments and markers for supporters of SIDE1
+    plotly_map <- add_segments(plotly_map,data = side1_supporters,x = ~start_long, xend = ~end_long, y = ~start_lat, yend = ~end_lat, alpha = 1, hoverinfo = "none",color = I("red"))
+    plotly_map <- add_markers(plotly_map,data = side1_supporters,  x = ~external_long, y = ~external_lat, text = ~getHoverText(external_name, external_type_text), hoverinfo = "text",alpha = 0.3,color = I("red"),marker=list(size=15))
+    plotly_map <- add_text(plotly_map,data = side1_supporters,  x = ~external_long, y = ~external_lat, text = ~external_name, color = I("red"), hoverinfo = "none")
+    
+  }
+  else if(!isCountry1Supp && isCountry2Supp){
+    #Adding segments and markers for supporters of SIDE2
+    plotly_map <- add_segments(plotly_map,data = side2_supporters,x = ~start_long, xend = ~end_long, y = ~start_lat, yend = ~end_lat, alpha = 1, hoverinfo = "none",color = I("blue"))
+    plotly_map <- add_markers(plotly_map, data = side2_supporters,  x = ~external_long, y = ~external_lat, text = ~getHoverText(external_name, external_type_text), hoverinfo = "text",alpha = 0.3,color = I("blue"),marker=list(size=15))
+    plotly_map <- add_text(plotly_map,data = side2_supporters,  x = ~external_long, y = ~external_lat, text = ~external_name, color = I("blue"), hoverinfo = "none")
+    
+    
+  }
+  
+  #Adding markers for SIDE1
+  plotly_map <- add_markers(plotly_map, data = country1_df,x = ~long, y = ~lat, marker=list(size = 18,symbol = "x"), text = ~getHoverTextFight(name), hoverinfo = "text",color = I("red"),alpha = 0.3)
+  
+  plotly_map <- add_text(plotly_map, data = country1_df,x = ~long, y = ~lat,text = ~name,color = I("red"), hoverinfo = "none")
+  
+  #Adding markers for SIDE2
+  plotly_map <- add_markers(plotly_map, data = country2_df,x = ~long, y = ~lat, marker=list(size = 18,symbol = "x"),text = ~getHoverTextFight(name), hoverinfo = "text",color = I("blue"),alpha = 0.3)
+  plotly_map <- add_text(plotly_map, data = country2_df,x = ~long, y = ~lat,text = ~name,color = I("blue"), hoverinfo = "none")
+  
+  
+  # Text for year
+  plotly_map <- add_text(plotly_map, x = 150, y = 80, text = conflict_year, color = I("black"),textfont = list(color = '#000000', size = 16), hoverinfo = "none")
+  
+  #browser()
+  mapList[[count]] <<- plotly_map
+  count<<-count+1
+}
+
+functionForEachYear <- function(year, conflictSubset, conflictName, conflict_type){
+  conflict_subset_year <- getConflictSubsetForYear(year, conflictSubset)
+  dyads_conflict_year <- getDyadsInConflictForYear(conflict_subset_year)
+  #print(paste("Dyad count in year ", year, "is", length(dyads_conflict_year)))
+  lapply(dyads_conflict_year, FUN = functionForEachDyadInYear, conflictSubsetYear = conflict_subset_year, conflict_name = conflictName, conflict_year = year, conflict_type = conflict_type)
+  # For each dyad for a given year:
+}
+
+between_countries <- "between_countries"
+govt_nongovt <- "govt_nongovt"
+```
+
+
+**1. Countries fighting against each other**
+
+```{r}
+subsetColumnsNames <- c('conflictID', 'conflict_name', 'dyad_id', 'dyad_name', 'external_name')
+furtherSubsetCountriesFighting <- conflictsWithCountriesFighting[subsetColumnsNames]
+conflictCountriesFightingExternalSupp <- furtherSubsetCountriesFighting %>% group_by(conflictID, conflict_name) %>% mutate(external_sup_count = n_distinct(external_name))
+
+uniqueConflictsCountriesFightSupportCount <- unique(conflictCountriesFightingExternalSupp[,c("conflictID","conflict_name","external_sup_count")])
+
+ggplot_external_count_country_fight <- ggplot(data = uniqueConflictsCountriesFightSupportCount, aes(x = conflict_name, y = external_sup_count, fill = external_sup_count)) + theme(plot.title = element_text(face = "bold.italic",hjust = 0.5), axis.title.x = element_text(size = 14, face = "bold"), axis.title.y = element_text(size = 14, face = "bold")) + geom_bar(stat = "identity")+labs(fill = "Number of External players") + ggtitle("External players in a inter-country conflict [1975-2009]") + xlab("Country1 - Country2") + ylab("Number of external players")+ geom_text(aes(label = paste(external_sup_count, ": Conflict_ID",conflictID)), color = "black",hjust=-0.1, size = 3.5) + scale_y_continuous(limits = c(0,60)) + scale_fill_gradient(low="blue", high="red")+  coord_flip()
+
+ggplot_external_count_country_fight
+```
+
+
+From the barplot above, we can clearly see that US invasion of Iraq in 2003 had the maximum number of external supporters (45) followed by Iraqi invasion of Kuwait in 1991 and Iran-Iraq war in 1980. 
+
+
+**a) Ethiopia-Somalia war**: We will try to understand different countries that provide support to the two sides over the years of the conflict.
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_71_subset <- getSubsetForConflict(71)
+conflict_71_name <- getConflictNameFromSubset(conflict_71_subset)
+years_conflict_71 <- getYearsForConflict(conflict_71_subset)
+lapply(years_conflict_71, FUN = functionForEachYear,conflictSubset=conflict_71_subset, conflictName=conflict_71_name, conflict_type = between_countries)
+conflict71_subplot <- subplot(mapList, nrows = 3) 
+conflict71_subplot
+```
+
+The Ogaden War or Ethiopia-Somalia war is a classic example of the **Cold War tensions** between the two blocks of the world- **Allied and Axis powers** [32]. The war took place between 1977 to 1980 and were supported by Soviet Union (Russia), Cuba and East Germany on the Ethiopian side and USA through its Arab allies on the Somalian side. This gives us a clear indication of the proxy wars that the two world superpowers involved in investing heavily in training, weapons, military and logistics support [33]. The war ended with Somalian defeat.
+
+**b) Iran- Iraq war**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_128_subset <- getSubsetForConflict(128)
+conflict_128_name <- getConflictNameFromSubset(conflict_128_subset)
+years_conflict_128 <- getYearsForConflict(conflict_128_subset)
+lapply(years_conflict_128, FUN = functionForEachYear,conflictSubset=conflict_128_subset, conflictName=conflict_128_name, conflict_type = between_countries)
+conflict128_subplot <- subplot(mapList, nrows = 3)
+conflict128_subplot
+```
+
+Iraq invaded Iran in 1980, just the year after the Islamic Revolution had overthrown the pro-West Shah of Iran and converted Iran into a theocracy. With the exception of Libya and Syria, entire support was for the Saddam Hussein's Iraq. Interestingly this happened during the peak of Cold War and USA (and allies) and Soviet Union (and allies) both supported Iraq. This was due to Iran's slogan of "neither East nor West". With active sale of arms to Iraq, both the superpowers could not accept the downfall of Saddam's regime and hence provided full support for the same [34,35].
+
+**c) Iraq invasion of Kuwait (1990, leading to the start of the Gulf War)**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_176_subset <- getSubsetForConflict(176)
+conflict_176_name <- getConflictNameFromSubset(conflict_176_subset)
+years_conflict_176 <- getYearsForConflict(conflict_176_subset)
+lapply(years_conflict_176, FUN = functionForEachYear,conflictSubset=conflict_176_subset, conflictName=conflict_176_name, conflict_type = between_countries)
+conflict176_subplot <- subplot(mapList, nrows = 1)
+
+conflict176_subplot
+```
+
+By the time the Iran–Iraq War ended, Iraq was not in a financial position to repay the US$14 billion it borrowed from Kuwait to finance its war. Inability to repay the debt to Kuwait, Iraq decided to invade Kuwait in 1990 which culminated in a decisive Iraqi victory with Kuwait being declared as the 19th province of Iraq. This led to the start of the Gulf War which involved a US led coalition of 31 countries attacking the Iraqi forces backed only by Yemen and Palestine.
+In an interesting turn of events, the US led coalition which had supported Iraq in Iran-Iraq war turned offensive against  Saddam Hussein's regime during the Gulf War[36].
+
+
+**d) USA invasion of Iraq (2003)**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_226_subset <- getSubsetForConflict(226)
+conflict_226_name <- getConflictNameFromSubset(conflict_226_subset)
+years_conflict_226 <- getYearsForConflict(conflict_226_subset)
+lapply(years_conflict_226, FUN = functionForEachYear,conflictSubset=conflict_226_subset, conflictName=conflict_226_name, conflict_type = between_countries)
+conflict226_subplot <- subplot(mapList, nrows = 1)
+conflict226_subplot
+```
+
+The above map shows the support USA had in its invasion of Iraq in 2003. The entire world was involved in this War on Terror.
+
+By the above analysis, it can be seen that the world has pretty much been involved in fight for oil reserves. This is one of the major reasons that Middle East is such an unstable place.
+
+
+
+**2. Countries fighting against non government faction for governance in a country.**
+
+```{r}
+furtherSubsetCountriesGovernance <- conflictsWithCountriesGovernance[subsetColumnsNames]
+conflictCountriesGovernanceExternalSupp <- furtherSubsetCountriesGovernance %>% group_by(conflictID, conflict_name) %>% mutate(external_sup_count = n_distinct(external_name))
+
+uniqueConflictsGovernanceFightSupportCount <- unique(conflictCountriesGovernanceExternalSupp[,c("conflictID","conflict_name","external_sup_count")])
+
+
+ggplot_external_count_country_governance <- ggplot(data = uniqueConflictsGovernanceFightSupportCount, aes(x = conflict_name, y = external_sup_count, fill = external_sup_count)) + theme(plot.title = element_text(face = "bold.italic",hjust = 0.5), axis.title.x = element_text(size = 14, face = "bold"), axis.title.y = element_text(size = 14, face = "bold")) + geom_bar(stat = "identity")+labs(fill = "Number of External players") + ggtitle("External players in a fight against a non government faction [1975-2009]") + xlab("Country in conflict") + ylab("Number of external players")+ geom_text(aes(label = paste(external_sup_count, ": Conflict_ID",conflictID)), color = "black",hjust=-0.1, size = 3.5) + scale_y_continuous(limits = c(0,80)) + scale_fill_gradient(low="blue", high="red")+  coord_flip()
+
+ggplot_external_count_country_governance
+```
+
+Afghanistan and Iraq have long been involved in armed conflicts against various terrorist organizations that have their stronghold in the country. [Taliban and ISIS]. Interestingly US has 33 external supporters in its War On Terror which involved support from all of its NATO allies amongst many other countries.
+
+NOTE: In the following scenarios, one of the sides in the conflict is a non government organisation. Because it cannot be attributed to a specific country, I have jittered the latitude and longitude of the country where it is associated and marked it as the location of the non governement faction. This is only for representative purpose and does not aim to serve as the exact location of the faction.
+
+**a) Country: Afghanistan**
+
+```{r}
+getAllDyadsInConflict <- function(conflictSubset){
+  return(unique(conflictSubset$dyad_id))
+}
+
+getConflictSubsetGivenDyad <- function(conflictSubset, dyadId){
+  return(subset(conflictSubset, dyad_id == dyadId))
+}
+
+conflict_137_subset <- getSubsetForConflict(137)
+conflict_137_name <- getConflictNameFromSubset(conflict_137_subset)
+conflict_137_dyads <- getAllDyadsInConflict(conflict_137_subset)
+
+```
+
+Many organizations have fought the government of Afghanistan to get hold of governance in the country. It must be carefully noted that government here refers to the ruling party of the country - Najibullah government, then the Taliban government and so on. 
+
+**i) Government of Afghanistan - Harakat-i Inqilab-i Islami-yi Afghanistan**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_137_dyad_731 <- getConflictSubsetGivenDyad(conflict_137_subset, 731) # Hardcoded dyad ID.
+years_conflict_137_dyad_731 <- getYearsForConflict(conflict_137_dyad_731)
+lapply(years_conflict_137_dyad_731, FUN = functionForEachYear,conflictSubset=conflict_137_dyad_731, conflictName=conflict_137_name, conflict_type = govt_nongovt)
+conflict137_dyad_731_subplot <- subplot(mapList, nrows = 3)
+
+conflict137_dyad_731_subplot
+```
+
+Government of Afghanistan (Communist) : Red
+
+Harakat-i Inqilab-i Islami-yi Afghanistan : Blue
+
+As can be seen in the maps plotted above, the Communist government of Afghanistan was fully supported by Soviet Union which invaded Afghanistan in 1979. Understandably, the anti-communist  Harakat-i Inqilab-i Islami-yi Afghanistan party was backed by US and it's allies from 1980 to 1988.
+
+
+**ii) Government of Afghanistan - Hizb-i Islami-yi Afghanistan**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_137_dyad_412 <- getConflictSubsetGivenDyad(conflict_137_subset, 412) # Hardcoded dyad ID.
+years_conflict_137_dyad_412 <- getYearsForConflict(conflict_137_dyad_412)
+lapply(years_conflict_137_dyad_412, FUN = functionForEachYear,conflictSubset=conflict_137_dyad_412, conflictName=conflict_137_name, conflict_type = govt_nongovt)
+conflict137_dyad_412_subplot <- subplot(mapList, nrows = 6)
+
+conflict137_dyad_412_subplot
+```
+
+Government of Afghanistan (Communist): Red
+
+Hizb-i Islami-yi Afghanistan: Blue
+
+The conflict between communist Afganistan government and anti-communist Hizb-i Islami-yi Afghanistan organization is another grim reminder of the Cold War between USA and USSR. USSR backed the Najibullah led communist government till its downfall in 1991.
+
+
+**iii) Government of Afghanistan - Taleban**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_137_dyad_327 <- getConflictSubsetGivenDyad(conflict_137_subset, 327) # Hardcoded dyad ID.
+years_conflict_137_dyad_327 <- getYearsForConflict(conflict_137_dyad_327)
+lapply(years_conflict_137_dyad_327, FUN = functionForEachYear,conflictSubset=conflict_137_dyad_327, conflictName=conflict_137_name, conflict_type = govt_nongovt)
+conflict137_dyad_327_subplot <- subplot(mapList, nrows = 3)
+
+conflict137_dyad_327_subplot
+```
+
+Government of Afghanistan: Red 
+
+Taleban: Blue
+
+Ever since the establishment of the Taleban in the mid nineties, Pakistan has been it's staunch supporter, providing training, weapons, personnel and intelligence support via ISI (Intelligence agency of Pakistan). 
+Pakistan, Saudi Arabis and UAE were the only 3 countries which recognized Taliban as the legitimate government of Afghanistan when it came to power in 1996.
+The Taliban government ruled Afghanistan from 1996 till 2001 when US led coalition invaded Afghanistan and toppled the Taleban government. Interestingly, we can see that Taleban has found an unlikely ally in Shia majority Iran.
+By providing limited support to the Taliban, Iran is hitting two birds with one stone: creating a buffer against ISIS and preventing the United States from using Afghanistan as a base against Iran [37].
+
+
+**iv) Government of Afghanistan - UIFSA (The Northern Alliance or United Islamic Front for Salvation of Afghanistan)**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_137_dyad_423 <- getConflictSubsetGivenDyad(conflict_137_subset, 423) # Hardcoded dyad ID.
+years_conflict_137_dyad_423 <- getYearsForConflict(conflict_137_dyad_423)
+lapply(years_conflict_137_dyad_423, FUN = functionForEachYear,conflictSubset=conflict_137_dyad_423, conflictName=conflict_137_name, conflict_type = govt_nongovt)
+conflict137_dyad_423_subplot <- subplot(mapList, nrows = 3)
+
+conflict137_dyad_423_subplot
+```
+
+Government of Afghanistan(Taleban) : Red
+
+UIFSA : Blue
+
+Note: Here government is that of the Taliban [1996-2001].
+
+UIFSA was a coalition of militias seeking to topple the Taliban government in Afghanistan. Throughout its course, Taliban was supported by Pakistan, Saudi Arabia amongst other Sunni majority Arab countries until 1999 when Saudi Arabia withdrew support to Taliban [40]. 
+
+
+**b) USA (Invasion of Afghanistan to capture Osama bin Laden and topple the Taleban government)**
+
+```{r}
+conflict_224_subset <- getSubsetForConflict(224)
+conflict_224_name <- getConflictNameFromSubset(conflict_224_subset)
+conflict_224_dyads <- getAllDyadsInConflict(conflict_224_subset)
+
+count <- 1
+mapList <- list()
+conflict_224_dyad_360 <- getConflictSubsetGivenDyad(conflict_224_subset, 360) # Hardcoded dyad ID.
+years_conflict_224_dyad_360 <- getYearsForConflict(conflict_224_dyad_360)
+lapply(years_conflict_224_dyad_360, FUN = functionForEachYear,conflictSubset=conflict_224_dyad_360, conflictName=conflict_224_name, conflict_type = govt_nongovt)
+conflict224_dyad_360_subplot <- subplot(mapList, nrows = 4)
+
+conflict224_dyad_360_subplot
+```
+
+USA: Red
+
+Al-Qaeda: Blue
+
+After the September 11, 2001 attacks in USA by al-Qaeda, US with its allies declared War on Terror and invaded Afghanistan. 
+
+**3. Countries fighting to control territory**
+
+```{r}
+furtherSubsetCountriesTerritory <- conflictsWithCountriesTerritory[subsetColumnsNames]
+conflictCountriesTerritoryExternalSupp <- furtherSubsetCountriesTerritory %>% group_by(conflictID, conflict_name) %>% mutate(external_sup_count = n_distinct(external_name))
+
+uniqueConflictsTerritoryFightSupportCount <- unique(conflictCountriesTerritoryExternalSupp[,c("conflictID","conflict_name","external_sup_count")])
+
+
+ggplot_external_count_country_territory <- ggplot(data = uniqueConflictsTerritoryFightSupportCount, aes(x = conflict_name, y = external_sup_count, fill = external_sup_count)) + theme(plot.title = element_text(face = "bold.italic",hjust = 0.5), axis.title.x = element_text(size = 14, face = "bold"), axis.title.y = element_text(size = 14, face = "bold")) + geom_bar(stat = "identity")+labs(fill = "Number of External players") + ggtitle("External players in a conflict to access territory [1975-2009]") + xlab("Country (Territory)") + ylab("Number of external players")+ geom_text(aes(label = paste(external_sup_count, ": Conflict_ID",conflictID)), color = "black",hjust=-0.1, size = 3.5)+ scale_y_continuous(limits = c(0,25)) + scale_fill_gradient(low="blue", high="red")+  coord_flip()
+
+ggplot_external_count_country_territory
+```
+
+From the barplot above, we can see that Ethiopia-Somalia war [1977-1978] over the disputed territory of Ogaden had 19 foreign powers. The power struggle represented the proxy war scene during the Cold War.
+It can also be clearly seen that Africa and Middle East regions have the maximum number of external forces involved in wars.
+
+
+**a) Israel (Palestine)**
+
+```{r}
+conflict_37_subset <- getSubsetForConflict(37)
+conflict_37_name <- getConflictNameFromSubset(conflict_37_subset)
+conflict_37_dyads <- getAllDyadsInConflict(conflict_37_subset)
+```
+
+**i) Government of Israel against Fatah.**
+```{r}
+count <- 1
+mapList <- list()
+conflict_37_dyad_377 <- getConflictSubsetGivenDyad(conflict_37_subset, 377) # Hardcoded dyad ID.
+years_conflict_37_dyad_377 <- getYearsForConflict(conflict_37_dyad_377)
+lapply(years_conflict_37_dyad_377, FUN = functionForEachYear,conflictSubset=conflict_37_dyad_377, conflictName=conflict_37_name, conflict_type = govt_nongovt)
+conflict37_dyad_377_subplot <- subplot(mapList, nrows = 3)
+
+conflict37_dyad_377_subplot
+```
+
+United States has been a staunch supporter of Israel in its fight against Fatah. 
+
+**ii) Government of Israel against Hamas**
+
+```{r}
+count <- 1
+mapList <- list()
+conflict_37_dyad_381 <- getConflictSubsetGivenDyad(conflict_37_subset, 381) # Hardcoded dyad ID.
+years_conflict_37_dyad_381 <- getYearsForConflict(conflict_37_dyad_381)
+lapply(years_conflict_37_dyad_381, FUN = functionForEachYear,conflictSubset=conflict_37_dyad_381, conflictName=conflict_37_name, conflict_type = govt_nongovt)
+conflict37_dyad_381_subplot <- subplot(mapList, nrows = 4)
+
+conflict37_dyad_381_subplot
+```
+
+Hamas has always been supported by Iran and Syria whereas Israel is supported by United States.
+
+Fatah and Hamas have been fighting against Zionist occupation of Israel and have been demanding establishment of Palestine. However there are some differences in the ideologies of the two organisations which makes them fight against each other as well [41].
+
+**Number of external countries getting involved in a conflict increasing with time**
+
+
+```{r}
+externalSupportColumns <- c("external_name", "external_code","external_lat","external_long","ywp_year")
+
+countriesGivingSupport <- externalHelp[externalSupportColumns] # 4869
+
+#Get rid of non country support:
+onlyCountriesSupport <- subset(countriesGivingSupport, (external_lat != 'NA' & external_long != 'NA')) #4135
+
+#1 For a given year, how many unique countries are involved.
+
+uniqueCountForGivenYear <- onlyCountriesSupport %>% group_by(ywp_year) %>% mutate(unique_country_count_year =n_distinct(external_name))
+
+extractYearCountryCount <- subset(uniqueCountForGivenYear, select=c("ywp_year", "unique_country_count_year"))
+
+sortedByYearCountryCount <- unique(extractYearCountryCount[with(extractYearCountryCount, order(ywp_year)),][,c('ywp_year','unique_country_count_year')])
+  
+#Plot the line chart over the years....
+
+trend_yearwise_country_count <- plot_ly(sortedByYearCountryCount, x = ~factor(ywp_year), y = ~unique_country_count_year, type = 'scatter', mode = 'line',text = ~paste('Country count:',unique_country_count_year,'<br>Year:',ywp_year), hoverinfo="text")%>% layout(title = "Yearwise trend of external countries involved in a conflict", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of countries involved'))
+
+trend_yearwise_country_count
+```
+
+Clearly in 1991 [Gulf War] and 2003 [Invasion of Iraq] there are peaks. Many countries worldwide were involved in armed conflicts. There is a general upwards trend which indicates that countries are increasingly getting involved in wars as foreign powers trying to serve their own purpose.
+
+Whenever an external power gets involved in an armed conflict, it might provide some of the many possible aids to the side it chooses to partner with. This might include:
+Troop support, military support, allowing access to territory, providing weapons, material and logistics support amongst many other types of support.
+
+**Yearwise trend of different countries involved as external supporters**
+
+
+```{r}
+columnsForCountryConflict <- c("conflictID","conflict_name","ywp_year","external_name","external_code","external_lat","external_long","external_code")
+columnsForTypesOfSupport <- c("external_type_troops", "external_type_military","external_type_territory","external_type_weapon","external_type_material_log","external_type_training","external_type_economic","external_type_intelligence")
+
+cummColumnsSupportType<- c(columnsForTypesOfSupport, columnsForCountryConflict)
+
+df_Support_Types <- subset(externalHelp[cummColumnsSupportType],(external_lat != 'NA' & external_long != 'NA'))
+
+groupByYearSupportTypes <- df_Support_Types %>% group_by(ywp_year)
+
+aggregatedByYearSupportTypes <- aggregate(cbind(external_type_troops,external_type_military,external_type_territory,external_type_weapon,external_type_material_log,external_type_training,external_type_economic,external_type_intelligence) ~ ywp_year, df_Support_Types,FUN = sum)
+
+## Plot line plots for each year...
+trend_support_yearwise <- plot_ly(aggregatedByYearSupportTypes, x=~factor(ywp_year)) %>% add_trace(y=~external_type_troops, name = 'Troops', mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_military, name = "Military", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_territory, name = "Territory", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_weapon, name = "Weapon", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_material_log, name = "Material and Logistics", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_intelligence, name = "Intelligence", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_training, name = "Training", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_economic, name = "Funding", mode = 'lines+markers',type = 'scatter') %>% layout(title = "Different types of war support provided by external players ", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of countries'))
+
+trend_support_yearwise
+```
+
+From the above line plot it can be clearly seen that the number of countries providing aid in terms of sending troops to fight in a foreign land on behalf of the warring party and training in a foreign country has seen a significant jump in 2004. This can be due to Invasion of Iraq in 2003 in which a number of NATO allied countries provided support.
+
+There was a time of increased weapon, logistics and funding support in the years from 1977 to 1991 which coincides with the duration of Cold War. During this time, a number of proxy wars were fought throughout the world and hence increased external support.
+
+**Which countries have provided different kinds of supports throughout the years under consideration?**
+
+
+**1) Troops**
+
+```{r}
+getTextForSupport <- function(ext_name, countConflict){
+  strToReturn <- paste("Country:", ext_name,"<br>Conflict count:",countConflict)
+  return(strToReturn)
+}
+
+## Now determine which are the top 10 countries providing each type of support
+
+aggregateByCountrySupportTypesOverall <- aggregate(cbind(external_type_troops,external_type_military,external_type_territory,external_type_weapon,external_type_material_log,external_type_training,external_type_economic,external_type_intelligence) ~ external_name+external_code, df_Support_Types,FUN = sum)
+
+#1. Troops: Top 10 countries providing maximum troop support:
+df_troop_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_troops","external_code"))
+# Extract top 10 countries
+descending_troop_country <-df_troop_country[with(df_troop_country, order(-df_troop_country$external_type_troops)),]
+top10_troop_country <- descending_troop_country[1:10,]
+
+map_troop_support <- plot_geo(top10_troop_country) %>%
+  add_trace(
+    z = ~external_type_troops,  locations = ~external_code,
+    color = ~external_type_troops, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_troops), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Troop support in conflicts',
+    geo = g_world
+  )
+map_troop_support
+```
+
+Russia has provided its troops in maximum number of conflicts worldwide from 1975 to 2009.
+
+**2) Military support**
+
+```{r}
+#2. Military: Top 10 countries providing maximum military support:
+df_military_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_military","external_code"))
+# Extract top 10 countries
+descending_military_country <-df_military_country[order(-df_military_country$external_type_military),]
+top10_military_country <- descending_military_country[1:10,]
+
+map_military_support <- plot_geo(top10_military_country) %>%
+  add_trace(
+    z = ~external_type_military,  locations = ~external_code,
+    color = ~external_type_military, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_military), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Military support in conflicts',
+    geo = g_world
+  )
+map_military_support
+```
+
+USA has provided its military support in maximum number of conflicts worldwide from 1975 to 2009.
+
+
+**3) Territory**
+
+```{r}
+df_territory_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_territory","external_code"))
+# Extract top 10 countries
+descending_territory_country <-df_territory_country[order(-df_territory_country$external_type_territory),]
+top10_territory_country <- descending_territory_country[1:10,]
+
+map_territory_support <- plot_geo(top10_territory_country) %>%
+  add_trace(
+    z = ~external_type_territory,  locations = ~external_code,
+    color = ~external_type_territory, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_territory), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Territory support in conflicts',
+    geo = g_world
+  )
+map_territory_support
+```
+As expected the countries close to the ones that are involved in war can provide the maximum territorial support to the warring parties. From the map above, we can see the maximum support by Sudan.
+
+
+**4) Weapons**
+
+```{r}
+df_weapon_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_weapon","external_code"))
+# Extract top 10 countries
+descending_weapon_country <-df_weapon_country[order(-df_weapon_country$external_type_weapon),]
+top10_weapon_country <- descending_weapon_country[1:10,]
+
+map_weapon_support <- plot_geo(top10_weapon_country) %>%
+  add_trace(
+    z = ~external_type_weapon,  locations = ~external_code,
+    color = ~external_type_weapon, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_weapon), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Weapon support in conflicts',
+    geo = g_world
+  )
+map_weapon_support
+```
+
+United States has been the largest supplier of weapons in conflict worldwide.
+
+
+**5) Material/Logistics support**
+
+```{r}
+df_mat_log_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_material_log","external_code"))
+# Extract top 10 countries
+descending_mat_log_country <-df_mat_log_country[order(-df_mat_log_country$external_type_material_log),]
+top10_mat_log_country <- descending_mat_log_country[1:10,]
+
+map_mat_log_support <- plot_geo(top10_mat_log_country) %>%
+  add_trace(
+    z = ~external_type_material_log,  locations = ~external_code,
+    color = ~external_type_material_log, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_material_log), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Material/Logistic support in conflicts',
+    geo = g_world
+  )
+map_mat_log_support
+```
+
+Clearly USA has been the largest provider of Material and Logistic support in the conflicts worldwide.
+
+**6) Intelligence**
+
+```{r}
+df_intelligence_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_intelligence","external_code"))
+# Extract top 10 countries
+descending_intelligence_country <-df_intelligence_country[order(-df_intelligence_country$external_type_intelligence),]
+top10_intelligence_country <- descending_intelligence_country[1:10,]
+
+map_intelligence_support <- plot_geo(top10_intelligence_country) %>%
+  add_trace(
+    z = ~external_type_intelligence,  locations = ~external_code,
+    color = ~external_type_intelligence, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_intelligence), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Intelligence support in conflicts',
+    geo = g_world
+  )
+map_intelligence_support
+```
+
+**7) Training support**
+
+```{r}
+df_training_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_training","external_code"))
+descending_training_country <-df_training_country[order(-df_training_country$external_type_training),]
+top10_training_country <- descending_training_country[1:10,]
+
+map_training_support <- plot_geo(top10_training_country) %>%
+  add_trace(
+    z = ~external_type_training,  locations = ~external_code,
+    color = ~external_type_training, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_training), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Training support in conflicts',
+    geo = g_world
+  )
+map_training_support
+```
+
+**8) Funding/ Economic support**
+
+```{r}
+df_economic_country <- subset(aggregateByCountrySupportTypesOverall, select = c("external_name","external_type_economic","external_code"))
+# Extract top 10 countries
+descending_economic_country <-df_economic_country[order(-df_economic_country$external_type_economic),]
+top10_economic_country <- descending_economic_country[1:10,]
+
+map_economic_support <- plot_geo(top10_economic_country) %>%
+  add_trace(
+    z = ~external_type_economic,  locations = ~external_code,
+    color = ~external_type_economic, color = ~external_code,colors = c("Blue","Red"), text = ~getTextForSupport(external_name, external_type_economic), hoverinfo = "text"
+  ) %>%
+  colorbar(title = "Conflict Count") %>%
+  layout(
+    title = 'Countries that provided highest Economic support in conflicts',
+    geo = g_world
+  )
+map_economic_support
+```
+
+
+Let's see country wide distribution of supports.
+
+1. USA
+
+```{r}
+aggregatedByYearAndCountrySupportTypes <- aggregate(cbind(external_type_troops,external_type_military,external_type_territory,external_type_weapon,external_type_material_log,external_type_training,external_type_economic,external_type_intelligence) ~ ywp_year+external_name+external_code, df_Support_Types,FUN = sum) # Extract corresponding support information.
+
+#1.USA
+subset_usa <- subset(aggregatedByYearAndCountrySupportTypes, external_code == 'USA')
+
+trend_support_usa_yearwise <- plot_ly(subset_usa, x=~factor(ywp_year)) %>% add_trace(y=~external_type_troops, name = 'Troops', mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_military, name = "Military", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_territory, name = "Territory", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_weapon, name = "Weapon", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_material_log, name = "Material and Logistics", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_intelligence, name = "Intelligence", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_training, name = "Training", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_economic, name = "Funding", mode = 'lines+markers',type = 'scatter') %>% layout(title = "Different types of war support provided by USA ", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of conflicts where USA is involved'))
+
+trend_support_usa_yearwise
+```
+
+As can be seen from the line plot above, USA provided extensive Weapon, Material and training support in various conflicts throughout the world. This further saw an increase in 2001 when US declared war on terror and invaded Iraq and Afghanistan.
+
+2. Russia
+
+```{r}
+subset_russia <- subset(aggregatedByYearAndCountrySupportTypes, external_code == 'RUS')
+
+trend_support_russia_yearwise <- plot_ly(subset_russia, x=~factor(ywp_year)) %>% add_trace(y=~external_type_troops, name = 'Troops', mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_military, name = "Military", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_territory, name = "Territory", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_weapon, name = "Weapon", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_material_log, name = "Material and Logistics", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_intelligence, name = "Intelligence", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_training, name = "Training", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_economic, name = "Funding", mode = 'lines+markers',type = 'scatter') %>% layout(title = "Different types of war support provided by Russia ", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of conflicts where Russia is involved'))
+trend_support_russia_yearwise
+```
+
+Clearly Russia (Soviet Union) has increased involvement in conflicts throughout the world during the Cold War.
+
+3. United Kingdom
+
+```{r}
+subset_uk <- subset(aggregatedByYearAndCountrySupportTypes, external_code == 'GBR')
+
+trend_support_uk_yearwise <- plot_ly(subset_uk, x=~factor(ywp_year)) %>% add_trace(y=~external_type_troops, name = 'Troops', mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_military, name = "Military", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_territory, name = "Territory", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_weapon, name = "Weapon", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_material_log, name = "Material and Logistics", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_intelligence, name = "Intelligence", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_training, name = "Training", mode = 'lines+markers',type = 'scatter') %>% add_trace(y=~external_type_economic, name = "Funding", mode = 'lines+markers',type = 'scatter') %>% layout(title = "Different types of war support provided by UK ", xaxis = list(title = 'Year'), yaxis = list(title = 'Total number of conflicts where UK is involved'))
+trend_support_uk_yearwise
+```
+
+
+
+
+# Analysis using Hypothesis Testing.
+
+**H0: Duration of conflict is independent of number of external players present in a conflict.**
+
+**HA: Duration of conflict depends on number of external players involved.**
+
+```{r}
+columnsForCountryConflict <- c("conflictID","conflict_name","ywp_year","external_name","external_code","external_lat","external_long","external_code")
+subsetWithConflictCountryCount <- externalHelp[columnsForCountryConflict] #4869
+
+onlyCountrySupportConflictSubset <-  subset(subsetWithConflictCountryCount, (external_lat != 'NA' & external_long != 'NA')) #4135
+
+countryCountDurationConflict <- onlyCountrySupportConflictSubset %>% group_by(conflictID,conflict_name) %>% mutate(unique_country_count_conflict =n_distinct(external_name), total_years_conflict = n_distinct(ywp_year))
+
+extractSubsetConflictExternalYears <- subset(countryCountDurationConflict, select=c("conflictID", "conflict_name","unique_country_count_conflict","total_years_conflict"))
+
+uniqueSubsetConflictExternalYears <- unique(extractSubsetConflictExternalYears)
+```
+
+Performing cursory analysis by plotting scatterplot.
+
+```{r}
+# Make a scatterplot between duration of conflict and number of external players involved.
+
+plot_external_duration <- plot_ly(uniqueSubsetConflictExternalYears, x = ~unique_country_count_conflict, y = ~total_years_conflict, type = 'scatter', mode = 'lines+markers',text = ~paste('Conflict Name:',conflict_name,'<br>Conflict ID:',conflictID,'<br>Total external countries :',unique_country_count_conflict,'<br>Duration(years):',total_years_conflict), hoverinfo="text")%>% layout(title = "Number of external countries involved versus Duration of conflict", xaxis = list(title = 'Total unique countries'), yaxis = list(title = 'Total duration(years)'))
+
+plot_external_duration
+```
+
+Scatterplot above does not give a clear understanding of whether the 2 variables are independent. Let's get rid of the datapoints in the above plot that are extreme i.e. points corresponding to conflicts 137, 62, 224, 176 and 226
+Let's perform test of independence.
+
+```{r}
+uniqueSubsetConflictExternalYears <- subset(uniqueSubsetConflictExternalYears,  conflictID != 137 & conflictID != 62 & conflictID !=224 & conflictID !=176 & conflictID != 226)
+
+mixCoords <- function(data) {
+  n <- length(data$unique_country_count_conflict)
+  stopifnot(n == length(data$total_years_conflict))
+  new_x <- sample(data$unique_country_count_conflict, n, replace=FALSE)
+  data.frame(unique_country_count_conflict=new_x, total_years_conflict=data$total_years_conflict)
+}
+
+smoothFitRobustOriginal <- loess(total_years_conflict ~ unique_country_count_conflict, data = uniqueSubsetConflictExternalYears, span=1, family="symmetric")
+
+sd_original <- sd(smoothFitRobustOriginal$fitted) # 7.754087
+
+stdDevList <- c()
+for(i in 1:1000){
+  shuffledDS <- mixCoords(uniqueSubsetConflictExternalYears)
+  loessFitted <- loess(total_years_conflict ~ unique_country_count_conflict, data = shuffledDS, span=1, family="symmetric")
+  sdev <- sd(loessFitted$fitted)
+  stdDevList <- c(stdDevList,sdev)
+}
+
+# plot the histogram:
+histogram_stdDev <-plot_ly(x = ~stdDevList, type = "histogram", hoverinfo = "none")%>%add_segments(x = sd_original, xend = sd_original, y = 0, yend = 140)%>%layout(title = "Histogram of standard deviation of shuffled dataset", xaxis = list(title = 'Standard deviation', range = c(0,10)), yaxis = list(title = 'Frequency'),showlegend = FALSE)
+
+histogram_stdDev
+```
+
+It can clearly be seen from the graph that the probability of observing something as weird as the data is very very low under the null hypothesis. Hence, we have evidence against the null hypothesis that duration of conflict is independent of number of external players involved in the conflict.
+
+
+
+# Bibliography
+1. https://en.wikipedia.org/wiki/Cold_War
+2. http://www.un.org/esa/socdev/rwss/docs/2001/15%20Armed%20Conflict.pdf
+3. http://www.lse.ac.uk/internationalDevelopment/research/crisisStates/download/drc/FailedState.pdf
+4. http://ucdp.uu.se/downloads/ged/ged172.pdf
+5. https://en.wikipedia.org/wiki/Operation_Juniper_Shield
+6. https://en.wikipedia.org/wiki/2003_invasion_of_Iraq
+7. https://en.wikipedia.org/wiki/Arab_Spring
+8. https://sustainablesecurity.org/2017/09/27/targeting-civilians-in-civil-wars-why-ideology-matters/
+9. http://blog.ucall.nl/index.php/2017/10/armed-non-state-actors-and-international-human-rights-law-an-analysis-of-the-un-security-council-and-un-general-assembly/
+10. http://www.inegma.com/Admin/Content/File-81020131379.pdf
+11. http://www.dw.com/en/why-is-northern-afghanistan-increasingly-unstable/a-37768779
+12. http://www.dw.com/en/why-is-russia-so-interested-in-afghanistan-all-of-a-sudden/a-36989680
+13. https://www.history.com/this-day-in-history/u-s-led-attack-on-afghanistan-begins
+14. https://en.wikipedia.org/wiki/Colombian_conflict
+15. https://en.wikipedia.org/wiki/Internal_conflict_in_Peru
+16. http://www.documentarytube.com/articles/how-the-gulf-cartel-jurez-cartel-and-the-sinaloa-cartel-control-the-drug-trafficking-routes
+17. https://en.wikipedia.org/wiki/First_Chechen_War
+18. https://en.wikipedia.org/wiki/Second_Chechen_War
+19. https://www.nytimes.com/2004/07/01/world/qatar-court-convicts-2-russians-in-top-chechen-s-death.html
+20. https://en.wikipedia.org/wiki/Assassination_of_Zelimkhan_Yandarbiyev
+21. https://en.wikipedia.org/wiki/Bosnian_War
+22. https://en.wikipedia.org/wiki/Srebrenica_massacre
+23. https://en.wikipedia.org/wiki/Gaza%E2%80%93Israel_conflict
+24. https://en.wikipedia.org/wiki/Taliban_insurgency
+25. https://www.cnn.com/2015/12/17/world/mapping-isis-attacks-around-the-world/index.html
+26. https://www.vox.com/cards/things-about-isis-you-need-to-know/what-is-isis
+27. http://www.newsweek.com/islamic-state-america-attacks-744497
+28. https://en.wikipedia.org/wiki/September_11_attacks
+29. https://en.wikipedia.org/wiki/Al-Qaeda_in_the_Islamic_Maghreb
+30. https://en.wikipedia.org/wiki/Salafist_Group_for_Preaching_and_Combat
+31. https://en.wikipedia.org/wiki/Lord%27s_Resistance_Army
+32. https://simple.wikipedia.org/wiki/Cold_War
+33. https://www.washingtonpost.com/archive/politics/1978/03/05/the-superpowers-and-the-ogaden-war/00f60ef2-01b4-4cd3-8c5f-e545df388def/?utm_term=457cfe09bd44
+34. https://en.wikipedia.org/wiki/Soviet_Union_and_the_Iran%E2%80%93Iraq_War
+35. https://en.wikipedia.org/wiki/International_aid_to_combatants_in_the_Iran%E2%80%93Iraq_War
+36. https://www.history.com/topics/persian-gulf-war
+37. http://www.mei.edu/content/article/iran-s-taliban-gamble-afghanistan
+38. http://www.start.umd.edu/baad/narratives/northern-alliance-or-united-islamic-front-salvation-afghanistan-uifsa
+39. https://www.hrw.org/reports/2001/afghan2/Afghan0701-02.htm
+40. https://thediplomat.com/2017/09/whats-behind-saudi-arabias-turn-away-from-the-taliban/
+41. https://www.aljazeera.com/indepth/features/2017/10/hamas-fatah-goal-approaches-171012064342008.html
+
+# Extra information [Please read]
+
+1. Please find attached all the data files used for analysis in the report. To run the project place the files in a folder and replace dataDirectory '/Users/hardiksahi/Second Term/Stat 847/Project/FinalDataSet847' with the location of your folder on line 61.
+2. This report is submitted by:
+
+**HARDIK SAHI**
+
+**University of Waterloo**
